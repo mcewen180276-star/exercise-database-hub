@@ -598,92 +598,7 @@ function programmeHTML(p){return `<!doctype html><html><head><meta charset="utf-
 #choreo .ch-playlists{border-color:#cbdcf5}
 #choreo .ch-playlists h3{font-size:1.15rem}
 @media(max-width:640px){#choreo .ch-quick-switch{grid-template-columns:1fr 1fr}#choreo .ch-quick-switch button{grid-column:1/-1}#choreo #chPdfStage{height:56vh!important}}
-</style></head><body><h1>${safe(p.name)}</h1><p>Goal: ${safe(p.goal)}</p>${p.days.map(day=>`<section><h2>${safe(day.name)}</h2><ol>${day.exercises.map(x=>{const ex=all().find(a=>a.id===x.id);return `<li><b>${safe(ex?.name||'Unknown')}</b> — ${safe(x.sets)} sets × ${safe(x.reps)}, ${safe(x.rest)}s rest${x.warm?`, ${x.warm} warm-up set(s) of 16–20 light reps`:''}<p>${safe(ex?.desc||'')}</p>${ex?`<a href="${safe(demo(ex))}">Exercise demo search</a>`:''}</li>`}).join('')}</ol></section>`).join('')}
-<style id="exerciseFocusStyles">
-body.exercise-focus #nav [data-tab]:not([data-tab="library"]){display:none!important}
-body.exercise-focus #exerciseFocusToggle{display:inline-flex!important}
-#exerciseFocusToggle{margin:6px 10px;padding:8px 13px;border-radius:9px}
-</style>
-<script>
-/* Reversible workspace focus: hide navigation, never delete other sections or data. */
-(function(){
- function init(){
-  const nav=document.getElementById('nav');
-  if(!nav||!document.getElementById('library'))return;
-  const toggle=document.createElement('button');
-  toggle.id='exerciseFocusToggle';
-  toggle.type='button';
-  toggle.textContent='Show all sections';
-  nav.appendChild(toggle);
-  let focused=true;
-  function setFocus(value){
-   focused=value;
-   document.body.classList.toggle('exercise-focus',focused);
-   toggle.textContent=focused?'Show all sections':'Focus on exercise database';
-   if(focused){const btn=nav.querySelector('[data-tab="library"]');btn?.click();}
-  }
-  toggle.addEventListener('click',()=>setFocus(!focused));
-  setFocus(true);
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
- else init();
-})();
-</script>
-<style id="equipmentManagerStyles">.equipment-manager-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:8px;max-height:480px;overflow:auto}.equipment-manager-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #dbe2ed;border-radius:9px;min-width:0}.equipment-manager-item>div:first-child{min-width:0;overflow-wrap:anywhere}.equipment-manager-item button{padding:5px 9px;font-size:12px;white-space:nowrap}#equipmentManager .row>*{min-width:0}</style>
-<script id="equipmentManagerLogic">
-(function(){
-const builtins={"Bodyweight & studio": ["Bodyweight", "Exercise Mat", "Yoga Mat", "Yoga Block", "Yoga Strap", "Bolster", "Foam Roller", "Pilates Ring", "Pilates Ball", "Stability Ball", "Mini Stability Ball", "BOSU Balance Trainer", "Balance Disc", "Balance Board", "Wobble Cushion", "Step Platform", "Aerobic Step", "Plyometric Box", "Soft Plyo Box", "Agility Ladder", "Cones", "Hurdles", "Skipping Rope", "Battle Ropes", "Slide Discs", "Gliding Discs", "Ab Wheel", "Ab Sling", "Tornado Ball", "Medicine Ball", "Slam Ball", "Wall Ball", "Weighted Vest", "Ankle Weights", "Wrist Weights", "Body Bar", "Gym Stick", "Rebounder Trampoline", "Chair", "Bench", "Incline Bench", "Adjustable Bench", "Flat Bench", "Decline Bench", "Swiss Ball"], "Free weights & functional": ["Dumbbell", "Adjustable Dumbbell", "Kettlebell", "Competition Kettlebell", "Barbell", "Olympic Barbell", "EZ Curl Bar", "Trap Bar", "Safety Squat Bar", "Swiss Bar", "Technique Bar", "Fixed Barbell", "Olympic Weight Plates", "Bumper Plates", "Fractional Plates", "Weight Collars", "Weightlifting Platform", "Power Rack", "Squat Rack", "Half Rack", "Smith Machine", "Landmine Attachment", "Landmine Handle", "Sandbag", "Power Bag", "Bulgarian Bag", "Aqua Bag", "Strongman Sandbag", "Farmer Carry Handles", "Sled", "Prowler", "Weighted Sled", "Tyre", "Sledgehammer", "Macebell", "Steel Club", "Clubbell", "Indian Clubs", "Grip Trainer", "Hand Gripper"], "Bands, cables & suspension": ["Resistance Band", "Loop Resistance Band", "Mini Band", "Fabric Hip Band", "Tube Resistance Band", "Power Band", "Therapy Band", "Cable Resistance Band", "Door Anchor", "Band Anchor", "Suspension Trainer / TRX", "Gymnastics Rings", "Pull-up Bar", "Dip Bars", "Parallettes", "Cable Machine", "Dual Adjustable Pulley", "Functional Trainer", "Cable Crossover", "Lat Pulldown Machine", "Seated Cable Row", "Low Pulley Row"], "Resistance machines": ["Leg Press Machine", "45 Degree Leg Press", "Horizontal Leg Press", "Hack Squat Machine", "Pendulum Squat", "Belt Squat Machine", "Leg Extension Machine", "Seated Leg Curl Machine", "Lying Leg Curl Machine", "Standing Leg Curl", "Hip Abductor Machine", "Hip Adductor Machine", "Glute Drive Machine", "Hip Thrust Machine", "Glute Kickback Machine", "Calf Raise Machine", "Seated Calf Raise", "Chest Press Machine", "Incline Chest Press Machine", "Pec Deck", "Rear Delt Fly Machine", "Shoulder Press Machine", "Lateral Raise Machine", "Assisted Pull-up / Dip Machine", "Pull-down Machine", "High Row Machine", "Low Row Machine", "Iso-Lateral Row", "Biceps Curl Machine", "Triceps Extension Machine", "Abdominal Crunch Machine", "Rotary Torso Machine", "Back Extension Machine", "GHD Machine", "Roman Chair", "Reverse Hyper Machine", "Plate Loaded Machine", "Selectorised Machine", "Multi Gym"], "Cardio machines": ["Treadmill", "Curved Treadmill", "Manual Treadmill", "Exercise Bike", "Upright Bike", "Recumbent Bike", "Spin Bike", "Air Bike", "Assault Bike", "Ski Erg", "Rowing Machine", "Air Rower", "Water Rower", "Elliptical Cross Trainer", "Arc Trainer", "Stair Climber", "Stairmill", "Stepper Machine", "VersaClimber", "Vertical Climber", "Hand Cycle", "Upper Body Ergometer", "Arm Bike", "Adaptive Seated Stepper", "Jacob's Ladder", "Indoor Cycle Trainer"], "Boxing, agility & conditioning": ["Boxing Gloves", "Focus Mitts", "Thai Pads", "Kick Shield", "Punch Bag", "Heavy Bag", "Speed Bag", "Double End Bag", "Reflex Bag", "Boxing Pads", "Freestanding Punch Bag", "Reaction Lights", "Agility Poles", "Resistance Parachute", "Sprint Harness", "Reaction Ball", "Weighted Jump Rope", "Punching Dummy"], "Mobility, rehabilitation & specialist": ["Massage Ball", "Peanut Massage Ball", "Massage Gun", "Stretch Strap", "Stretch Band", "Slant Board", "Calf Stretch Board", "Balance Beam", "Pilates Reformer", "Pilates Cadillac", "Pilates Chair", "Pilates Barrel", "Pilates Spine Corrector", "Wall Bars", "Physio Ball", "Resistance Putty", "Finger Extensor Bands", "Hand Therapy Ball", "Aquatic Dumbbells", "Pool Noodle", "Aqua Jogging Belt", "Aqua Step", "Vibration Plate", "Inversion Table", "Nordic Curl Bench"]};
-const key='fmh_equipment_manager_v1';
-let settings={custom:[],hidden:[]};
-try{const x=JSON.parse(localStorage.getItem(key)||'{}');settings={custom:Array.isArray(x.custom)?x.custom:[],hidden:Array.isArray(x.hidden)?x.hidden:[]}}catch(e){}
-const $id=id=>document.getElementById(id);
-const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
-const persist=()=>{try{localStorage.setItem(key,JSON.stringify(settings))}catch(e){alert('Could not save equipment changes: '+e.message)}};
-const categories=Object.keys(builtins);
-function records(){
- const rows=[],seen=new Set();
- for(const [category,names] of Object.entries(builtins))for(const name of names){const id=name.toLowerCase();if(!seen.has(id)){seen.add(id);rows.push({name,category,custom:false})}}
- for(const item of settings.custom){const id=item.name.toLowerCase();if(!seen.has(id)){seen.add(id);rows.push({...item,custom:true})}}
- return rows.sort((a,b)=>a.name.localeCompare(b.name));
-}
-function render(){
- const q=$id('equipmentSearch').value.trim().toLowerCase(),cat=$id('equipmentCategoryFilter').value;
- const rows=records().filter(x=>(!cat||x.category===cat)&&(!q||(x.name+' '+x.category).toLowerCase().includes(q)));
- $id('equipmentTotal').textContent=records().length+' equipment types • '+rows.length+' matching • '+settings.hidden.length+' hidden';
- $id('equipmentManagerList').innerHTML='<div class="equipment-manager-grid">'+rows.map(x=>{
- const hidden=settings.hidden.includes(x.name);
- return '<div class="equipment-manager-item"><div><strong>'+esc(x.name)+'</strong><div class="muted" style="font-size:12px">'+esc(x.category)+'</div></div><div><button type="button" data-equipment-toggle="'+esc(x.name)+'">'+(hidden?'Show':'Hide')+'</button> '+(x.custom?'<button type="button" class="danger" data-equipment-delete="'+esc(x.name)+'">Delete</button>':'')+'</div></div>'
- }).join('')+'</div>';
-}
-function init(){
- if(!$id('equipmentManager'))return;
- for(const id of ['equipmentCategoryFilter','equipmentNewCategory']){
- const el=$id(id);
- el.innerHTML=(id==='equipmentCategoryFilter'?'<option value="">All categories</option>':'')+categories.map(x=>'<option>'+esc(x)+'</option>').join('');
- }
- $id('equipmentSearch').addEventListener('input',render);
- $id('equipmentCategoryFilter').addEventListener('change',render);
- $id('equipmentAdd').addEventListener('click',()=>{
- const name=$id('equipmentNewName').value.trim(),category=$id('equipmentNewCategory').value;
- if(!name)return alert('Enter an equipment name');
- if(records().some(x=>x.name.toLowerCase()===name.toLowerCase()))return alert('This equipment already exists');
- settings.custom.push({name,category});persist();$id('equipmentNewName').value='';render();
- });
- $id('equipmentManagerList').addEventListener('click',e=>{
- const b=e.target.closest('button');if(!b)return;
- if(b.dataset.equipmentToggle){
- const name=b.dataset.equipmentToggle;settings.hidden=settings.hidden.includes(name)?settings.hidden.filter(x=>x!==name):[...settings.hidden,name];persist();render();
- }else if(b.dataset.equipmentDelete){
- const name=b.dataset.equipmentDelete;
- if(confirm('Delete custom equipment '+name+'? Existing exercises will not be deleted.')){settings.custom=settings.custom.filter(x=>x.name!==name);settings.hidden=settings.hidden.filter(x=>x!==name);persist();render()}
- }
- });
- render();
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
-</body></html>`}
+</style></head><body><h1>${safe(p.name)}</h1><p>Goal: ${safe(p.goal)}</p>${p.days.map(day=>`<section><h2>${safe(day.name)}</h2><ol>${day.exercises.map(x=>{const ex=all().find(a=>a.id===x.id);return `<li><b>${safe(ex?.name||'Unknown')}</b> — ${safe(x.sets)} sets × ${safe(x.reps)}, ${safe(x.rest)}s rest${x.warm?`, ${x.warm} warm-up set(s) of 16–20 light reps`:''}<p>${safe(ex?.desc||'')}</p>${ex?`<a href="${safe(demo(ex))}">Exercise demo search</a>`:''}</li>`}).join('')}</ol></section>`).join('')}</body></html>`}
 $('progSaved').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=Number(b.dataset.openProg||b.dataset.printProg||b.dataset.exportProg||b.dataset.deleteProg);const p=extra.programmes.find(x=>x.id===id);if(!p)return;if(b.dataset.deleteProg){if(confirm('Delete this programme?')){extra.programmes=extra.programmes.filter(x=>x.id!==id);extraSave();programmeRender()}return}if(b.dataset.openProg){draft=JSON.parse(JSON.stringify(p));dayIndex=0;$('progName').value=p.name;$('progGoal').value=p.goal;programmeClients();$('progClient').value=p.client||'';programmeRender();toast('Programme loaded as editable draft')}else if(b.dataset.exportProg)download(programmeHTML(p),'programme-'+id+'.html','text/html');else{const w=window.open('','_blank');if(w){w.document.write(programmeHTML(p));w.document.close();w.onload=()=>w.print()}else toast('Allow popups to print')}};
 let specialistItems=[],specialistTitle='',specialistDetails='';
 function specialistRender(){const items=specialistItems.map((x,i)=>`<li>${safe(x)}</li>`).join('');$('specialOutput').innerHTML=`<h3>${safe(specialistTitle)}</h3><p>${safe(specialistDetails)}</p><ol>${items}</ol>`}
@@ -2351,4 +2266,57 @@ $('chPageSongUnlink').onclick=()=>{
 })();
 
 
+</script><style id="equipmentManagerStyles">.equipment-manager-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:8px;max-height:480px;overflow:auto}.equipment-manager-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px;border:1px solid #dbe2ed;border-radius:9px;min-width:0}.equipment-manager-item>div:first-child{min-width:0;overflow-wrap:anywhere}.equipment-manager-item button{padding:5px 9px;font-size:12px;white-space:nowrap}#equipmentManager .row>*{min-width:0}</style>
+<script id="equipmentManagerLogic">
+(function(){
+const builtins={"Bodyweight & studio": ["Bodyweight", "Exercise Mat", "Yoga Mat", "Yoga Block", "Yoga Strap", "Bolster", "Foam Roller", "Pilates Ring", "Pilates Ball", "Stability Ball", "Mini Stability Ball", "BOSU Balance Trainer", "Balance Disc", "Balance Board", "Wobble Cushion", "Step Platform", "Aerobic Step", "Plyometric Box", "Soft Plyo Box", "Agility Ladder", "Cones", "Hurdles", "Skipping Rope", "Battle Ropes", "Slide Discs", "Gliding Discs", "Ab Wheel", "Ab Sling", "Tornado Ball", "Medicine Ball", "Slam Ball", "Wall Ball", "Weighted Vest", "Ankle Weights", "Wrist Weights", "Body Bar", "Gym Stick", "Rebounder Trampoline", "Chair", "Bench", "Incline Bench", "Adjustable Bench", "Flat Bench", "Decline Bench", "Swiss Ball"], "Free weights & functional": ["Dumbbell", "Adjustable Dumbbell", "Kettlebell", "Competition Kettlebell", "Barbell", "Olympic Barbell", "EZ Curl Bar", "Trap Bar", "Safety Squat Bar", "Swiss Bar", "Technique Bar", "Fixed Barbell", "Olympic Weight Plates", "Bumper Plates", "Fractional Plates", "Weight Collars", "Weightlifting Platform", "Power Rack", "Squat Rack", "Half Rack", "Smith Machine", "Landmine Attachment", "Landmine Handle", "Sandbag", "Power Bag", "Bulgarian Bag", "Aqua Bag", "Strongman Sandbag", "Farmer Carry Handles", "Sled", "Prowler", "Weighted Sled", "Tyre", "Sledgehammer", "Macebell", "Steel Club", "Clubbell", "Indian Clubs", "Grip Trainer", "Hand Gripper"], "Bands, cables & suspension": ["Resistance Band", "Loop Resistance Band", "Mini Band", "Fabric Hip Band", "Tube Resistance Band", "Power Band", "Therapy Band", "Cable Resistance Band", "Door Anchor", "Band Anchor", "Suspension Trainer / TRX", "Gymnastics Rings", "Pull-up Bar", "Dip Bars", "Parallettes", "Cable Machine", "Dual Adjustable Pulley", "Functional Trainer", "Cable Crossover", "Lat Pulldown Machine", "Seated Cable Row", "Low Pulley Row"], "Resistance machines": ["Leg Press Machine", "45 Degree Leg Press", "Horizontal Leg Press", "Hack Squat Machine", "Pendulum Squat", "Belt Squat Machine", "Leg Extension Machine", "Seated Leg Curl Machine", "Lying Leg Curl Machine", "Standing Leg Curl", "Hip Abductor Machine", "Hip Adductor Machine", "Glute Drive Machine", "Hip Thrust Machine", "Glute Kickback Machine", "Calf Raise Machine", "Seated Calf Raise", "Chest Press Machine", "Incline Chest Press Machine", "Pec Deck", "Rear Delt Fly Machine", "Shoulder Press Machine", "Lateral Raise Machine", "Assisted Pull-up / Dip Machine", "Pull-down Machine", "High Row Machine", "Low Row Machine", "Iso-Lateral Row", "Biceps Curl Machine", "Triceps Extension Machine", "Abdominal Crunch Machine", "Rotary Torso Machine", "Back Extension Machine", "GHD Machine", "Roman Chair", "Reverse Hyper Machine", "Plate Loaded Machine", "Selectorised Machine", "Multi Gym"], "Cardio machines": ["Treadmill", "Curved Treadmill", "Manual Treadmill", "Exercise Bike", "Upright Bike", "Recumbent Bike", "Spin Bike", "Air Bike", "Assault Bike", "Ski Erg", "Rowing Machine", "Air Rower", "Water Rower", "Elliptical Cross Trainer", "Arc Trainer", "Stair Climber", "Stairmill", "Stepper Machine", "VersaClimber", "Vertical Climber", "Hand Cycle", "Upper Body Ergometer", "Arm Bike", "Adaptive Seated Stepper", "Jacob's Ladder", "Indoor Cycle Trainer"], "Boxing, agility & conditioning": ["Boxing Gloves", "Focus Mitts", "Thai Pads", "Kick Shield", "Punch Bag", "Heavy Bag", "Speed Bag", "Double End Bag", "Reflex Bag", "Boxing Pads", "Freestanding Punch Bag", "Reaction Lights", "Agility Poles", "Resistance Parachute", "Sprint Harness", "Reaction Ball", "Weighted Jump Rope", "Punching Dummy"], "Mobility, rehabilitation & specialist": ["Massage Ball", "Peanut Massage Ball", "Massage Gun", "Stretch Strap", "Stretch Band", "Slant Board", "Calf Stretch Board", "Balance Beam", "Pilates Reformer", "Pilates Cadillac", "Pilates Chair", "Pilates Barrel", "Pilates Spine Corrector", "Wall Bars", "Physio Ball", "Resistance Putty", "Finger Extensor Bands", "Hand Therapy Ball", "Aquatic Dumbbells", "Pool Noodle", "Aqua Jogging Belt", "Aqua Step", "Vibration Plate", "Inversion Table", "Nordic Curl Bench"]};
+const key='fmh_equipment_manager_v1';
+let settings={custom:[],hidden:[]};
+try{const x=JSON.parse(localStorage.getItem(key)||'{}');settings={custom:Array.isArray(x.custom)?x.custom:[],hidden:Array.isArray(x.hidden)?x.hidden:[]}}catch(e){}
+const $id=id=>document.getElementById(id);
+const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','"':'&quot;',"'":'&#39;'}[c]));
+const persist=()=>{try{localStorage.setItem(key,JSON.stringify(settings))}catch(e){alert('Could not save equipment changes: '+e.message)}};
+const categories=Object.keys(builtins);
+function records(){
+ const rows=[],seen=new Set();
+ for(const [category,names] of Object.entries(builtins))for(const name of names){const id=name.toLowerCase();if(!seen.has(id)){seen.add(id);rows.push({name,category,custom:false})}}
+ for(const item of settings.custom){const id=item.name.toLowerCase();if(!seen.has(id)){seen.add(id);rows.push({...item,custom:true})}}
+ return rows.sort((a,b)=>a.name.localeCompare(b.name));
+}
+function render(){
+ const q=$id('equipmentSearch').value.trim().toLowerCase(),cat=$id('equipmentCategoryFilter').value;
+ const rows=records().filter(x=>(!cat||x.category===cat)&&(!q||(x.name+' '+x.category).toLowerCase().includes(q)));
+ $id('equipmentTotal').textContent=records().length+' equipment types • '+rows.length+' matching • '+settings.hidden.length+' hidden';
+ $id('equipmentManagerList').innerHTML='<div class="equipment-manager-grid">'+rows.map(x=>{
+ const hidden=settings.hidden.includes(x.name);
+ return '<div class="equipment-manager-item"><div><strong>'+esc(x.name)+'</strong><div class="muted" style="font-size:12px">'+esc(x.category)+'</div></div><div><button type="button" data-equipment-toggle="'+esc(x.name)+'">'+(hidden?'Show':'Hide')+'</button> '+(x.custom?'<button type="button" class="danger" data-equipment-delete="'+esc(x.name)+'">Delete</button>':'')+'</div></div>'
+ }).join('')+'</div>';
+}
+function init(){
+ if(!$id('equipmentManager'))return;
+ for(const id of ['equipmentCategoryFilter','equipmentNewCategory']){
+ const el=$id(id);
+ el.innerHTML=(id==='equipmentCategoryFilter'?'<option value="">All categories</option>':'')+categories.map(x=>'<option>'+esc(x)+'</option>').join('');
+ }
+ $id('equipmentSearch').addEventListener('input',render);
+ $id('equipmentCategoryFilter').addEventListener('change',render);
+ $id('equipmentAdd').addEventListener('click',()=>{
+ const name=$id('equipmentNewName').value.trim(),category=$id('equipmentNewCategory').value;
+ if(!name)return alert('Enter an equipment name');
+ if(records().some(x=>x.name.toLowerCase()===name.toLowerCase()))return alert('This equipment already exists');
+ settings.custom.push({name,category});persist();$id('equipmentNewName').value='';render();
+ });
+ $id('equipmentManagerList').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.equipmentToggle){
+ const name=b.dataset.equipmentToggle;settings.hidden=settings.hidden.includes(name)?settings.hidden.filter(x=>x!==name):[...settings.hidden,name];persist();render();
+ }else if(b.dataset.equipmentDelete){
+ const name=b.dataset.equipmentDelete;
+ if(confirm('Delete custom equipment '+name+'? Existing exercises will not be deleted.')){settings.custom=settings.custom.filter(x=>x.name!==name);settings.hidden=settings.hidden.filter(x=>x!==name);persist();render()}
+ }
+ });
+ render();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
 </script></body></html>
