@@ -2806,4 +2806,58 @@ document.addEventListener('pointerdown',e=>{if(!top.contains(e.target))menus.for
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+<style id="exerciseSafeToolbarStyle">
+#exerciseSafeToolbar{display:flex;align-items:center;gap:7px;padding:9px;background:#182e46;border-radius:12px;position:relative;z-index:50;margin:10px 0;overflow:visible}
+#exerciseSafeToolbar .safe-scroll{display:flex;align-items:center;gap:7px;overflow-x:auto;min-width:0;width:100%;scrollbar-width:thin;padding:2px 1px}
+#exerciseSafeToolbar button,#exerciseSafeToolbar summary{white-space:nowrap;background:#2a4564;color:white;border:1px solid #54708d;border-radius:8px;padding:10px 12px;cursor:pointer;font-size:13px;font-weight:650;list-style:none}
+#exerciseSafeToolbar summary::-webkit-details-marker{display:none}
+#exerciseSafeToolbar details{position:static;flex-shrink:0}
+#exerciseSafeToolbar details[open]>summary{background:#2773a9}
+#exerciseSafeToolbar .safe-popup{position:absolute;top:calc(100% + 5px);left:8px;right:8px;z-index:100;background:var(--card,#fff);color:var(--text,#1c2938);padding:14px;border:1px solid #bacbdf;border-radius:10px;box-shadow:0 15px 35px #0004;max-height:70vh;overflow:auto}
+#exerciseSafeToolbar .safe-popup .grid{grid-template-columns:repeat(auto-fit,minmax(155px,1fr))}
+#exerciseSafeToolbar .safe-popup input,#exerciseSafeToolbar .safe-popup select{width:100%;box-sizing:border-box}
+#exerciseSafeSearch{display:flex;align-items:center;gap:10px;margin:8px 0 12px;padding:10px;border:1px solid #cbd6e4;border-radius:10px;background:var(--card,#fff)}
+#exerciseSafeSearch input{width:100%;min-width:0;flex:1;font-size:16px}
+#exerciseSafeSearch label{font-weight:700;white-space:nowrap}
+#exerciseSafeContent[data-view=exercise] #equipmentManager,#exerciseSafeContent[data-view=exercise] #fmhEquipmentV16{display:none!important}
+#exerciseSafeContent[data-view=equipment] .safe-exercise-card{display:none!important}
+#exerciseSafeContent[data-view=equipment] #equipmentManager,#exerciseSafeContent[data-view=equipment] #fmhEquipmentV16{display:block!important}
+#exerciseSafeToolbar .safe-popup .card{margin:0;padding:4px;border:0;box-shadow:none}
+@media(max-width:600px){#exerciseSafeToolbar{padding:6px}#exerciseSafeToolbar button,#exerciseSafeToolbar summary{padding:9px 8px;font-size:12px}#exerciseSafeSearch label{display:none}}
+</style>
+<script id="exerciseSafeToolbarScript">
+(function(){
+function init(){
+const lib=document.getElementById('library');if(!lib||document.getElementById('exerciseSafeToolbar'))return;
+const $=id=>document.getElementById(id);
+const search=$('search'),list=$('exerciseList'),equipment=$('equipmentManager'),add=$('addExercise');
+if(!search||!list||!equipment||!add)return;
+const exerciseCard=list.closest('.card'),addCard=add.closest('.card');
+const bar=document.createElement('nav');bar.id='exerciseSafeToolbar';bar.setAttribute('aria-label','Exercise and equipment options');
+const scroll=document.createElement('div');scroll.className='safe-scroll';bar.appendChild(scroll);
+const searchBox=document.createElement('div');searchBox.id='exerciseSafeSearch';
+const content=document.createElement('div');content.id='exerciseSafeContent';content.dataset.view='exercise';
+lib.insertBefore(bar,exerciseCard);lib.insertBefore(searchBox,exerciseCard);lib.insertBefore(content,exerciseCard);
+exerciseCard.classList.add('safe-exercise-card');content.appendChild(exerciseCard);content.appendChild(equipment);
+const stock=$('fmhEquipmentV16');if(stock)content.appendChild(stock);
+const label=document.createElement('label');label.textContent='Search exercises';label.htmlFor='search';searchBox.append(label,search);
+const clear=$('clearExerciseFilters');if(clear)searchBox.appendChild(clear);
+function tab(name,view){const b=document.createElement('button');b.type='button';b.textContent=name;b.onclick=()=>{content.dataset.view=view;scroll.querySelectorAll('details').forEach(x=>x.open=false)};scroll.appendChild(b)}
+function menu(name){const d=document.createElement('details'),summary=document.createElement('summary'),pop=document.createElement('div');summary.textContent=name;pop.className='safe-popup';d.append(summary,pop);scroll.append(d);d.addEventListener('toggle',()=>{if(d.open)scroll.querySelectorAll('details').forEach(x=>{if(x!==d)x.open=false})});return pop}
+tab('Exercises','exercise');tab('Equipment','equipment');
+const filters=menu('Filters');const grid=document.createElement('div');grid.className='grid';filters.appendChild(grid);
+['filterEquip','filterType','filterMuscle','filterMovement','filterLevel','filterImpact','filterPosition','filterSort'].forEach(id=>{const input=$(id);if(input&&input.parentElement)grid.appendChild(input.parentElement)});
+const tools=menu('Equipment tools');const rows=Array.from(equipment.querySelectorAll(':scope > .row'));
+rows.forEach(r=>tools.appendChild(r));
+const addMenu=menu('Add exercise');addMenu.appendChild(addCard);
+const stockMenu=menu('Stock & exercise links');if(stock)stockMenu.appendChild(stock);
+const options=menu('Export & options');const csv=$('exportExerciseCsv');if(csv)options.appendChild(csv);
+const backup=$('v16Backup');if(backup)options.appendChild(backup);
+document.addEventListener('pointerdown',e=>{if(!bar.contains(e.target))scroll.querySelectorAll('details').forEach(d=>d.open=false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')scroll.querySelectorAll('details').forEach(d=>d.open=false)});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body></html>
