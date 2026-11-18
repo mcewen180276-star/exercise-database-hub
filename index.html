@@ -598,7 +598,38 @@ function programmeHTML(p){return `<!doctype html><html><head><meta charset="utf-
 #choreo .ch-playlists{border-color:#cbdcf5}
 #choreo .ch-playlists h3{font-size:1.15rem}
 @media(max-width:640px){#choreo .ch-quick-switch{grid-template-columns:1fr 1fr}#choreo .ch-quick-switch button{grid-column:1/-1}#choreo #chPdfStage{height:56vh!important}}
-</style></head><body><h1>${safe(p.name)}</h1><p>Goal: ${safe(p.goal)}</p>${p.days.map(day=>`<section><h2>${safe(day.name)}</h2><ol>${day.exercises.map(x=>{const ex=all().find(a=>a.id===x.id);return `<li><b>${safe(ex?.name||'Unknown')}</b> — ${safe(x.sets)} sets × ${safe(x.reps)}, ${safe(x.rest)}s rest${x.warm?`, ${x.warm} warm-up set(s) of 16–20 light reps`:''}<p>${safe(ex?.desc||'')}</p>${ex?`<a href="${safe(demo(ex))}">Exercise demo search</a>`:''}</li>`}).join('')}</ol></section>`).join('')}</body></html>`}
+</style></head><body><h1>${safe(p.name)}</h1><p>Goal: ${safe(p.goal)}</p>${p.days.map(day=>`<section><h2>${safe(day.name)}</h2><ol>${day.exercises.map(x=>{const ex=all().find(a=>a.id===x.id);return `<li><b>${safe(ex?.name||'Unknown')}</b> — ${safe(x.sets)} sets × ${safe(x.reps)}, ${safe(x.rest)}s rest${x.warm?`, ${x.warm} warm-up set(s) of 16–20 light reps`:''}<p>${safe(ex?.desc||'')}</p>${ex?`<a href="${safe(demo(ex))}">Exercise demo search</a>`:''}</li>`}).join('')}</ol></section>`).join('')}
+<style id="exerciseStandaloneStyle">
+body.exercise-standalone>header{display:none!important}
+body.exercise-standalone>#nav{display:none!important}
+body.exercise-standalone main.shell{max-width:1450px!important;width:100%!important;margin:0 auto!important;padding:12px!important}
+body.exercise-standalone main.shell>section:not(#library){display:none!important}
+body.exercise-standalone main.shell>#library{display:block!important}
+#exerciseStandaloneHeader{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 18px;margin-bottom:12px;border-radius:14px;background:#152941;color:#fff}
+#exerciseStandaloneHeader h1{font-size:1.25rem;margin:0;color:#fff}
+#exerciseStandaloneHeader small{color:#d1dbe8}
+#library>h2:first-child{display:none}
+@media(max-width:650px){body.exercise-standalone main.shell{padding:6px!important}#exerciseStandaloneHeader{padding:12px}}
+</style>
+<script id="exerciseStandaloneLogic">
+(function(){
+function init(){
+ const library=document.getElementById('library');if(!library)return;
+ document.body.classList.add('exercise-standalone');
+ document.title='Exercise & Equipment Studio';
+ const nav=document.querySelector('#nav [data-tab="library"]');if(nav)nav.click();
+ document.querySelectorAll('main.shell>section').forEach(s=>s.classList.toggle('active',s.id==='library'));
+ if(!document.getElementById('exerciseStandaloneHeader')){
+  const header=document.createElement('div');header.id='exerciseStandaloneHeader';
+  header.innerHTML='<div><h1>🏋️ Exercise &amp; Equipment Studio</h1><small>Standalone development edition · Equipment catalogue, exercise library and stock management</small></div>';
+  library.insertBefore(header,library.firstChild);
+ }
+ const intro=library.querySelector('p.muted');if(intro&&intro.textContent.includes('All other app sections'))intro.textContent='Search exercises, manage equipment, add variations and save your changes locally.';
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body></html>`}
 $('progSaved').onclick=e=>{const b=e.target.closest('button');if(!b)return;const id=Number(b.dataset.openProg||b.dataset.printProg||b.dataset.exportProg||b.dataset.deleteProg);const p=extra.programmes.find(x=>x.id===id);if(!p)return;if(b.dataset.deleteProg){if(confirm('Delete this programme?')){extra.programmes=extra.programmes.filter(x=>x.id!==id);extraSave();programmeRender()}return}if(b.dataset.openProg){draft=JSON.parse(JSON.stringify(p));dayIndex=0;$('progName').value=p.name;$('progGoal').value=p.goal;programmeClients();$('progClient').value=p.client||'';programmeRender();toast('Programme loaded as editable draft')}else if(b.dataset.exportProg)download(programmeHTML(p),'programme-'+id+'.html','text/html');else{const w=window.open('','_blank');if(w){w.document.write(programmeHTML(p));w.document.close();w.onload=()=>w.print()}else toast('Allow popups to print')}};
 let specialistItems=[],specialistTitle='',specialistDetails='';
 function specialistRender(){const items=specialistItems.map((x,i)=>`<li>${safe(x)}</li>`).join('');$('specialOutput').innerHTML=`<h3>${safe(specialistTitle)}</h3><p>${safe(specialistDetails)}</p><ol>${items}</ol>`}
@@ -885,8 +916,11 @@ function chFitToWidth(){
  if(!chPdfDocument)return toast('PDF viewer is still loading');
  chPdfDocument.getPage(pdfPage).then(p=>{
   const unscaled=p.getViewport({scale:1,rotation:chRotation});
-  const width=Math.max(250,$('chPdfStage').clientWidth-25);
-  pdfZoom=Math.max(40,Math.min(400,Math.round(width/unscaled.width/1.35*100)));
+  const stage=$('chPdfStage'),full=document.fullscreenElement===stage;
+  const availableWidth=stage.clientWidth-(full?Math.max(175,stage.clientWidth*.28):0)-30;
+  const availableHeight=stage.clientHeight-25;
+  const width=Math.max(120,Math.min(availableWidth,availableHeight*unscaled.width/unscaled.height));
+  pdfZoom=Math.max(20,Math.min(400,Math.round(width/unscaled.width/1.35*100)));
   chNavigate(pdfPage);
  });
 }
@@ -2477,6 +2511,299 @@ function panel(){
  $('v16Expand').textContent='Add expanded exercise pack ('+movements.length+' base exercises × variations)';
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',panel);else panel();
+})();
+</script>
+<style id="chSafeTeachingPatch">
+#choreo .ch-teaching-options{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0}
+#choreo .ch-teaching-options label{display:flex;align-items:center;gap:5px;font-size:.85rem}
+#choreo .ch-teaching-options input{width:auto}
+#chPdfStage:fullscreen{display:grid!important;grid-template-columns:minmax(175px,28%) minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;gap:0!important;overflow:hidden!important;padding:0!important;position:relative!important}
+#chPdfStage:fullscreen #chFullMusic{display:flex!important;position:relative!important;grid-column:1!important;grid-row:1!important;top:auto!important;bottom:auto!important;left:auto!important;right:auto!important;transform:none!important;width:100%!important;max-width:none!important;height:100%!important;box-sizing:border-box!important;overflow:auto!important;flex-direction:column!important;align-items:stretch!important;justify-content:flex-start!important;gap:14px!important;padding:16px 10px!important;border-radius:0!important;z-index:2!important}
+#chPdfStage:fullscreen #chFullMusic .ch-full-song{white-space:normal!important;overflow-wrap:anywhere!important;font-size:16px!important}
+#chPdfStage:fullscreen #chFullMusic .ch-full-buttons{display:flex!important;flex-wrap:wrap!important;gap:7px!important;justify-content:flex-start!important}
+#chPdfStage:fullscreen #chFullMusic .ch-full-buttons button{flex:1 1 65px!important;min-height:36px!important}
+#chPdfStage:fullscreen #chFullMusic.ch-minimised{width:100%!important;left:auto!important;right:auto!important;transform:none!important}
+#chPdfStage:fullscreen #chFullMusic.ch-minimised .ch-full-song,#chPdfStage:fullscreen #chFullMusic.ch-minimised #chFullPrev,#chPdfStage:fullscreen #chFullMusic.ch-minimised #chFullNext{display:block!important}
+#chPdfStage:fullscreen #chCanvas{grid-column:2!important;grid-row:1!important;align-self:center!important;justify-self:center!important;max-width:calc(100% - 16px)!important;max-height:calc(100vh - 16px)!important;width:auto!important;height:auto!important;object-fit:contain!important;margin:auto!important}
+#chPdfStage:fullscreen #chViewer{grid-column:2!important;grid-row:1!important;width:100%!important;height:100%!important;min-width:0!important}
+@media(max-width:650px){#chPdfStage:fullscreen{grid-template-columns:minmax(120px,36%) minmax(0,1fr)!important}#chPdfStage:fullscreen #chFullMusic{padding:8px 5px!important}#chPdfStage:fullscreen #chFullMusic .ch-full-buttons button{font-size:11px!important;flex-basis:48px!important}}
+</style>
+<style id="chV151PlaylistAndToolbarFix">
+#choreo #chPdfControlStrip{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:7px 9px;border:1px solid #d9e4ef;border-radius:9px;background:#f4f8fd;margin:6px 0}
+#choreo #chPdfControlStrip button{padding:7px 9px;font-size:.79rem;margin:0;min-height:34px}
+#choreo #chPdfControlStrip label{font-size:.78rem;margin:0;display:flex;align-items:center;gap:5px}
+#choreo #chPdfControlStrip input{width:62px;min-width:0;margin:0}
+#choreo #chPlaylistWorkbench{display:block!important;visibility:visible!important}
+#choreo #chPlaylistWorkbenchMusic{display:block!important;visibility:visible!important;margin:5px 0!important}
+#choreo #chPlaylistWorkbenchMusic>summary{display:list-item!important;cursor:pointer}
+#choreo #chPlaylistWorkbenchMusic[open]>.ch-music-inner{display:block!important;visibility:visible!important}
+#choreo #chViewerPlaylistBar{display:flex!important;visibility:visible!important}
+#choreo #chViewerPlaylistBar select{min-width:125px}
+#choreo #chPdfControlStrip .chPdfControlMore{padding:0 6px}
+#choreo #chPdfControlStrip .chPdfControlMore summary{cursor:pointer;padding:8px 3px;font-size:.8rem}
+#choreo #chPdfControlStrip .chPdfControlMore .ch-extra-buttons{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0}
+</style>
+<style id="chFullTeachingV156">
+#chPdfStage:fullscreen #chFullMusic{min-width:0!important}
+#chPdfStage:fullscreen #chCanvas{object-fit:unset!important;max-width:none!important;max-height:none!important}
+#chPdfStage:fullscreen #chViewer{overflow:auto!important}
+#chPdfStage:fullscreen{overflow:auto!important;touch-action:pan-x pan-y!important}
+#chPdfStage:fullscreen .ch-full-zoom{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+#chPdfStage:fullscreen .ch-full-zoom button{flex:1 1 55px;padding:8px 5px}
+#chPdfStage:fullscreen .ch-full-queue{display:block;flex:1 1 auto;overflow-y:auto;min-height:80px;max-height:48vh;margin-top:8px}
+#chPdfStage:fullscreen .ch-full-queue button{display:block;width:100%;padding:8px 6px;margin:3px 0;text-align:left;font-size:.8rem;white-space:normal;overflow-wrap:anywhere}
+#chPdfStage:fullscreen .ch-full-queue button[aria-current="true"]{font-weight:800;outline:2px solid #91baff}
+#chPdfStage:fullscreen .ch-full-queue h4{font-size:.9rem;margin:4px 0 7px}
+#chPdfStage:fullscreen #chFullMusic .ch-full-zoom,#chPdfStage:fullscreen #chFullMusic .ch-full-queue{color:white}
+#chFullMusic .ch-full-zoom,#chFullMusic .ch-full-queue{display:none}
+#chPdfStage:fullscreen #chFullMusic{overflow-y:auto!important}
+#chPdfStage:fullscreen #chCanvas{cursor:grab}
+#chPdfStage:fullscreen #chCanvas:active{cursor:grabbing}
+#chReleasePdfAttach{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:8px 0;padding:10px;border:1px solid #cbd7e8;border-radius:9px}
+#chReleasePdfAttach>div{flex:1 1 140px}
+#chReleasePdfAttach button{padding:9px}
+</style>
+<style id="chStandaloneLocked">
+
+
+
+
+#chStandaloneHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 9px;padding:8px 12px;border-radius:10px;background:#17283d;color:white}
+#chStandaloneHeader strong{font-size:1.05rem}
+#chPdfStage:fullscreen{overflow:hidden!important;overscroll-behavior:contain!important}
+#chPdfStage:fullscreen #chFullMusic{grid-column:1!important;grid-row:1!important;position:relative!important;transform:none!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;height:100%!important;min-height:0!important}
+#chPdfStage:fullscreen #chLockedPdfViewport{grid-column:2!important;grid-row:1!important;position:relative!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important;touch-action:pan-x pan-y!important;background:#e7ebf1!important;text-align:center!important}
+#chPdfStage:fullscreen #chLockedPdfViewport #chCanvas{display:block;position:relative!important;grid-column:auto!important;grid-row:auto!important;max-width:none!important;max-height:none!important;width:auto!important;height:auto!important;margin:8px auto!important}
+#chPdfStage:fullscreen #chLockedPdfViewport #chCanvas[style*="display: none"]{display:none!important}
+#chPdfStage:fullscreen #chLockedPdfViewport #chViewer{grid-column:auto!important;grid-row:auto!important;width:100%!important;height:100%!important}
+</style>
+<style id="studioCleanV3">
+main.shell{padding:8px 12px!important;max-width:100%!important}
+#choreo{width:100%;max-width:100%;margin:0!important;padding:0!important}
+#choreo>h2,#choreo>.muted,#choreo>.section-intro{display:none!important}
+#chStandaloneHeader{margin-bottom:8px!important;padding:9px 14px!important}
+#cleanToolbar{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:visible;padding:7px;background:#15243b;border-radius:12px;margin-bottom:10px;position:relative;z-index:40}
+#cleanToolbar .clean-menu{position:relative;flex:0 0 auto;min-width:0}
+#cleanToolbar .clean-menu>summary{display:block;cursor:pointer;list-style:none;white-space:nowrap;color:white;font-weight:700;font-size:13px;padding:10px 12px;border-radius:8px;background:#29405c}
+#cleanToolbar .clean-menu>summary::-webkit-details-marker{display:none}
+#cleanToolbar .clean-menu>summary:after{content:' ▾';opacity:.8}
+#cleanToolbar .clean-menu[open]>summary{background:#3276c5}
+#cleanToolbar .clean-menu .clean-pop{position:absolute;top:calc(100% + 6px);left:0;width:min(430px,calc(100vw - 24px));max-height:min(70vh,650px);overflow:auto;overscroll-behavior:contain;background:#fff;color:#17263a;padding:12px;border:1px solid #b7c8da;border-radius:12px;box-shadow:0 12px 30px #0004;z-index:100;box-sizing:border-box}
+#cleanToolbar .clean-menu:last-child .clean-pop,#cleanToolbar .clean-menu:nth-last-child(2) .clean-pop{left:auto;right:0}
+#cleanToolbar .clean-pop .row{display:flex;flex-wrap:wrap;gap:6px}
+#cleanToolbar .clean-pop input,#cleanToolbar .clean-pop select{max-width:100%}
+#cleanToolbar .clean-pop .studio-panel{display:block!important;border:0!important;padding:0!important}
+#cleanToolbar .clean-pop .studio-panel>summary{display:none!important}
+#cleanToolbar .clean-pop .ch-workout-picker{width:100%}
+#cleanToolbar .clean-pop button{white-space:normal}
+#cleanLayout{display:grid;grid-template-columns:minmax(275px,32%) minmax(0,1fr);gap:12px;align-items:start;min-width:0}
+#cleanMusic,#cleanPdf{min-width:0;display:flex;flex-direction:column;gap:10px}
+#cleanMusic>*,#cleanPdf>*{min-width:0;max-width:100%;box-sizing:border-box;margin:0!important}
+#cleanMusic #chMusicPlayer{order:0;position:relative!important;top:auto!important}
+#cleanMusic .ch-music-accordion{order:2}
+#cleanMusic #chMusicPanel{order:3}
+#cleanMusic #chPlaylistPanel{order:4}
+#cleanMusic details,#cleanPdf details{border:1px solid #d2dfed;border-radius:10px;padding:8px;background:var(--card,#fff)}
+#cleanMusic details>summary,#cleanPdf details>summary{font-weight:700;cursor:pointer;padding:5px}
+#cleanPdf .studio-viewer{width:100%!important;min-width:0}
+#cleanPdf #chPdfStage{width:100%!important;min-width:0}
+#cleanPdf #chCanvas{max-width:100%}
+#cleanMusic .ch-music-player{padding:12px!important}
+#cleanPdf .ch-advanced{order:3}
+#cleanToolbar .clean-menu .clean-pop .ch-top-actions{display:flex!important;flex-wrap:wrap!important}
+@media(max-width:760px){#cleanToolbar{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}#cleanToolbar:has(details[open]){overflow:visible;flex-wrap:wrap}#cleanLayout{grid-template-columns:minmax(0,1fr)}#cleanToolbar .clean-menu>summary{font-size:12px;padding:9px}#cleanToolbar .clean-menu .clean-pop{position:fixed;top:85px;left:10px!important;right:10px!important;width:auto;max-height:75vh}}
+</style>
+<script id="chSafeTeachingPatchLogic">
+(function(){
+function init(){
+ var audio=document.getElementById('chAudio'),stage=document.getElementById('chPdfStage'),player=document.getElementById('chMusicPlayer');
+ if(!audio||!stage||!player)return;
+ var options=document.createElement('div');options.className='ch-teaching-options';
+ options.innerHTML='<label><input type="checkbox" id="chSafePause"> Stop after each track</label><label><input type="checkbox" id="chSafeFit" checked> Auto-fit PDF</label>';
+ player.appendChild(options);
+ var pause=document.getElementById('chSafePause'),fit=document.getElementById('chSafeFit');
+ try{pause.checked=localStorage.getItem('chSafePause')==='1';fit.checked=localStorage.getItem('chSafeFit')!=='0'}catch(e){}
+ pause.addEventListener('change',function(){try{localStorage.setItem('chSafePause',pause.checked?'1':'0')}catch(e){}});
+ fit.addEventListener('change',function(){try{localStorage.setItem('chSafeFit',fit.checked?'1':'0')}catch(e){};if(fit.checked)scheduleFit()});
+ audio.addEventListener('ended',function(e){if(pause.checked){e.stopImmediatePropagation();audio.pause()}},true);
+ var timeout;
+ function scheduleFit(){
+  if(!fit.checked)return;
+  clearTimeout(timeout);
+  timeout=setTimeout(function(){
+   var canvas=document.getElementById('chCanvas'),btn=document.getElementById('chFitWidth');
+   if(canvas&&canvas.style.display!=='none'&&btn)btn.click();
+  },350);
+ }
+ document.addEventListener('fullscreenchange',scheduleFit);
+ ['chPrev','chNext','chOpen','chViewSelected','chPlaylistPrev','chPlaylistNext','chPreviousTrackPage','chNextTrackPage'].forEach(function(id){
+  var el=document.getElementById(id);if(el)el.addEventListener('click',scheduleFit);
+ });
+ // Observe PDF page number only; do not alter PDF renderer, playlist handlers or audio nodes.
+ var page=document.getElementById('chGoPage');
+ if(page)page.addEventListener('change',scheduleFit);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script id="chV151PlaylistAndToolbarLogic">
+(function(){
+function init(){
+ const get=id=>document.getElementById(id),ch=get('choreo'),stage=get('chPdfStage');
+ if(!ch||!stage||get('chPdfControlStrip'))return;
+ const viewer=stage.closest('.studio-viewer')||stage.parentElement;
+ const bar=document.createElement('div');bar.id='chPdfControlStrip';
+ const extra=document.createElement('details');extra.className='chPdfControlMore';
+ extra.innerHTML='<summary>More PDF controls</summary><div class="ch-extra-buttons"></div>';
+ // Keep original controls and their existing event listeners; just relocate them.
+ for(const id of ['chPrev','chNext','chFullscreen','chZoomOut','chZoomIn','chFitWidth']){
+  const el=get(id);if(el)bar.appendChild(el);
+ }
+ const page=get('chGoPage');
+ if(page){const wrap=document.createElement('label');wrap.textContent='Page';wrap.appendChild(page);bar.appendChild(wrap)}
+ for(const id of ['chResetView','chRotate','chPreviousTrackPage','chNextTrackPage']){
+  const el=get(id);if(el)extra.querySelector('.ch-extra-buttons').appendChild(el);
+ }
+ bar.appendChild(extra);
+ viewer.insertBefore(bar,stage);
+ // Previous builds moved the actual music playlist editor into a collapsed workbench.
+ // Bring it into view while preserving the original playlist controls and handlers.
+ const music=get('chPlaylistWorkbenchMusic');
+ if(music){music.open=true;music.hidden=false;music.style.display='block'}
+ const workbench=get('chPlaylistWorkbench');if(workbench){workbench.hidden=false;workbench.style.display='block'}
+ const picker=get('chViewerMusic');
+ if(picker){picker.hidden=false;picker.style.display=''}
+ const manage=get('chViewerMusicManage');
+ if(manage)manage.onclick=()=>{if(music){music.open=true;music.scrollIntoView({behavior:'smooth',block:'nearest'})}};
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script id="chFullTeachingV156Logic">
+(function(){
+function init(){
+ const $=id=>document.getElementById(id),stage=$('chPdfStage'),full=$('chFullMusic');
+ if(!stage||!full)return;
+ const zoom=document.createElement('div');zoom.className='ch-full-zoom';
+ zoom.innerHTML='<button type="button" id="chFullZoomOut">− Zoom</button><button type="button" id="chFullFit">Fit page</button><button type="button" id="chFullZoomIn">＋ Zoom</button>';
+ full.appendChild(zoom);
+ for(const [id,existing] of [['chFullZoomOut','chZoomOut'],['chFullZoomIn','chZoomIn']]){
+  $(id).addEventListener('click',e=>{e.stopPropagation();$(existing).click()});
+ }
+ // Fit is a one-off action; it does not lock the user into fit mode.
+ $('chFullFit').addEventListener('click',e=>{e.stopPropagation();$('chFitWidth').click()});
+ const list=document.createElement('div');list.className='ch-full-queue';list.innerHTML='<h4>Playing folder / playlist</h4><div id="chFullQueueItems"></div>';
+ full.appendChild(list);
+ let last='';
+ function renderQueue(){
+  if(document.fullscreenElement!==stage)return;
+  try{
+   const queue=chMusicActiveQueue(),name=chMusicState.queueTitle||chMusicPlaylist()?.name||'Current music';
+   const signature=name+'|'+queue.join('|')+'|'+chMusicState.playing;
+   if(signature===last)return;last=signature;
+   list.querySelector('h4').textContent=name;
+   $('chFullQueueItems').replaceChildren();
+   queue.forEach((id,i)=>{
+    const btn=document.createElement('button');btn.type='button';
+    btn.textContent=(i+1)+'. '+chMusicDisplayTitle(id);
+    btn.setAttribute('aria-current',String(i===chMusicState.playing));
+    btn.addEventListener('click',e=>{e.stopPropagation();chMusicPlayQueueAt(i,true);last='';renderQueue()});
+    $('chFullQueueItems').appendChild(btn);
+   });
+  }catch(e){list.querySelector('h4').textContent='Track list unavailable'}
+ }
+ // Existing song change and queue selection render through their normal event handlers.
+ document.addEventListener('fullscreenchange',()=>{last='';renderQueue()});
+ ['chMusicNext','chMusicPrev','chFullNext','chFullPrev','chFullPlay'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',()=>{last='';renderQueue()})});
+ const audio=$('chAudio');if(audio)audio.addEventListener('play',()=>{last='';renderQueue()});
+ // Allow dragging the PDF canvas to pan after zooming; do not interfere with touch pinch/drag.
+ const canvas=$('chCanvas');
+ if(canvas){
+  let drag=null;
+  canvas.addEventListener('pointerdown',e=>{if(document.fullscreenElement!==stage||e.pointerType==='touch')return;drag={x:e.clientX,y:e.clientY,left:(document.getElementById('chLockedPdfViewport')||stage).scrollLeft,top:(document.getElementById('chLockedPdfViewport')||stage).scrollTop};canvas.setPointerCapture(e.pointerId)});
+  canvas.addEventListener('pointermove',e=>{if(!drag)return;(document.getElementById('chLockedPdfViewport')||stage).scrollLeft=drag.left+drag.x-e.clientX;(document.getElementById('chLockedPdfViewport')||stage).scrollTop=drag.top+drag.y-e.clientY});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(t=>canvas.addEventListener(t,()=>{drag=null}));
+ }
+ // Add entire release PDF using existing import/storage path. Preserve the selected original file.
+ const anchor=$('chPdf');
+ if(anchor){
+  const box=document.createElement('div');box.id='chReleasePdfAttach';
+  box.innerHTML='<div><label for="chReleasePdfWhole">Attach complete PDF to selected music release</label><input id="chReleasePdfWhole" type="file" accept=".pdf,application/pdf"></div><button id="chReleasePdfSave" type="button">Attach PDF</button>';
+  anchor.parentElement.appendChild(box);
+  $('chReleasePdfSave').addEventListener('click',async()=>{
+   const file=$('chReleasePdfWhole').files?.[0],programme=$('chProgramme').value,release=$('chRelease').value.trim();
+   if(!file)return alert('Choose a PDF first.');
+   if(!release)return alert('Select or enter a release number first.');
+   const renamed=new File([file],programme+' '+release+'.pdf',{type:'application/pdf',lastModified:file.lastModified});
+   try{
+    chMergeFiles([renamed]);await chStoreFiles([renamed]);chFolderResults();
+    const idx=chFolderPdfs.indexOf(renamed);
+    if(idx>=0)chOpenFolderIndex(idx);
+    alert('PDF attached to '+programme+' '+release+'. The entire PDF is available for this release.');
+   }catch(e){alert('Could not attach PDF: '+e.message)}
+  });
+ }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script id="chMasterPdfLockedScript">
+(function(){
+function init(){
+ const stage=document.getElementById('chPdfStage');
+ if(!stage||document.getElementById('chLockedPdfViewport'))return;
+ const canvas=document.getElementById('chCanvas'),iframe=document.getElementById('chViewer');
+ const viewport=document.createElement('div');viewport.id='chLockedPdfViewport';
+ let active=false;
+ document.addEventListener('fullscreenchange',()=>{
+  if(document.fullscreenElement===stage&&!active){
+   active=true;stage.insertBefore(viewport,stage.firstChild);
+   viewport.appendChild(canvas);viewport.appendChild(iframe);
+  }else if(document.fullscreenElement!==stage&&active){
+   active=false;stage.insertBefore(canvas,viewport);stage.insertBefore(iframe,viewport);viewport.remove();
+  }
+ });
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script id="studioCleanV3Logic">
+(function(){
+function init(){
+const ch=document.getElementById('choreo');if(!ch||document.getElementById('cleanLayout'))return;
+const original=ch.querySelector('.studio-workspace');if(!original)return;
+const top=document.createElement('nav');top.id='cleanToolbar';top.setAttribute('aria-label','Studio options');
+const layout=document.createElement('div');layout.id='cleanLayout';
+const music=document.createElement('aside');music.id='cleanMusic';music.setAttribute('aria-label','Music player, folders and playlists');
+const pdf=document.createElement('section');pdf.id='cleanPdf';pdf.setAttribute('aria-label','PDF viewer and page tagging');
+original.parentNode.insertBefore(top,original);top.after(layout);layout.append(music,pdf);
+function menu(label,open){const d=document.createElement('details');d.className='clean-menu';d.open=!!open;const summary=document.createElement('summary');summary.textContent=label;const pop=document.createElement('div');pop.className='clean-pop';d.append(summary,pop);top.appendChild(d);return pop}
+const programme=menu('Programme & release');const library=menu('PDF library');const controls=menu('PDF controls');const playlists=menu('PDF playlists');const other=menu('More options');
+const move=(element,dest)=>{if(element)dest.appendChild(element)};
+const picker=ch.querySelector('.studio-top .ch-workout-picker');move(picker,programme);
+const panel=ch.querySelector('.studio-left .studio-panel');move(panel,library);if(panel)panel.open=true;
+const actions=ch.querySelector('.studio-top .ch-top-actions');move(actions,other);
+// All original PDF viewer buttons stay together, in their own dropdown.
+const viewer=ch.querySelector('.studio-right .studio-viewer');
+if(viewer){
+ const toolbar=viewer.querySelector('.ch-viewer-toolbar,.ch-pdf-toolbar');if(toolbar)move(toolbar,controls);
+ const buttons=[...viewer.querySelectorAll('button')].filter(b=>/^(chPrev|chNext|chFitWidth|chZoomIn|chZoomOut|chFullscreen|chOpen|chViewSelected|chPlaylistPrev|chPlaylistNext)$/.test(b.id));
+ if(!toolbar&&buttons.length){const row=document.createElement('div');row.className='row';buttons.forEach(b=>row.appendChild(b));controls.appendChild(row)}
+ move(viewer,pdf);
+}
+const playlist=ch.querySelector('#chPlaylistPanel');move(playlist,playlists);
+const player=ch.querySelector('#chMusicPlayer');move(player,music);
+const albums=[...ch.querySelectorAll('.studio-left .ch-music-accordion')];albums.forEach(d=>move(d,music));
+const musicPanel=ch.querySelector('#chMusicPanel');move(musicPanel,music);
+const songLinks=ch.querySelector('.studio-middle .ch-music-accordion');move(songLinks,music);if(songLinks){const sm=songLinks.querySelector('summary');if(sm)sm.textContent='Tag songs & link notes'}
+const pdfTags=ch.querySelector('.studio-right .ch-advanced');move(pdfTags,pdf);if(pdfTags){const sm=pdfTags.querySelector('summary');if(sm)sm.textContent='Tag PDF pages'}
+const attach=document.getElementById('chReleasePdfAttach');if(attach)move(attach,library);
+const remaining=original.querySelectorAll('button,input,select,details');if(remaining.length){const rest=document.createElement('div');rest.className='clean-rest';while(original.firstChild)rest.appendChild(original.firstChild);other.appendChild(rest)}else original.remove();
+// Keep one menu open at a time. Close when clicking elsewhere.
+const menus=[...top.querySelectorAll('.clean-menu')];menus.forEach(d=>d.addEventListener('toggle',()=>{if(d.open)menus.forEach(x=>{if(x!==d)x.open=false})}));
+document.addEventListener('pointerdown',e=>{if(!top.contains(e.target))menus.forEach(d=>d.open=false)});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
 </body></html>
